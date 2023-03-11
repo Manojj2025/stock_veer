@@ -1,0 +1,22 @@
+[
+  {
+    "_id": "df4d0138-41f0-4104-b599-e59527f20bb4",
+    "colId": "history",
+    "containerId": "",
+    "name": "https://financialmodelingprep.com/api/v3/stock/list?apikey=76d214939856f46dff7723ee737344bf",
+    "url": "https://financialmodelingprep.com/api/v3/stock/list?apikey=76d214939856f46dff7723ee737344bf",
+    "method": "GET",
+    "sortNum": 0,
+    "created": "2023-03-06T05:10:05.918Z",
+    "modified": "2023-03-06T05:10:05.918Z",
+    "headers": [],
+    "params": [
+      {
+        "name": "apikey",
+        "value": "76d214939856f46dff7723ee737344bf",
+        "isPath": false
+      }
+    ],
+    "tests": []
+  }
+]
