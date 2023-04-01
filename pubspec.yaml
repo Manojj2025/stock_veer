@@ -45,6 +45,12 @@ dependencies:
   fluttertoast: ^8.2.1
   http: ^0.13.5
   readmore: ^2.2.0
+  syncfusion_flutter_charts: ^20.4.53
+  intl: ^0.18.0
+  flutter_screenutil: ^5.7.0
+  cached_network_image: ^3.2.3
+  webview_flutter_plus: ^0.3.0+2
+  
 
 dev_dependencies:
   flutter_test:
