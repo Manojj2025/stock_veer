@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:stock_veer/custom%20widgets/custom_appbar.dart';
+import 'package:stock_veer/utils/app_basestyles.dart';
+import 'package:stock_veer/utils/app_colors.dart';
 import 'package:stock_veer/utils/colors.dart';
 import 'package:stock_veer/views/bottom%20nav%20bar%20screens/home%20screen/tabs/mutual_funds_view.dart';
 import 'package:stock_veer/views/bottom%20nav%20bar%20screens/home%20screen/tabs/profile_view.dart';
@@ -22,12 +24,17 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>with WidgetsBindingObserver {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late TextEditingController searchController;
   bool showSearchResults = false;
   int currentIndex = 1;
   List stocklist = [];
-  List searchlist=[];
+  List searchlist = [];
+  List topgainer = [];
+  List toploser = [];
+
+  List topactive = [];
+  bool loading = false;
   // final List<String> _items = [
   //   'Top',
   //   'Stock',
@@ -46,13 +53,15 @@ class _HomeScreenState extends State<HomeScreen>with WidgetsBindingObserver {
   @override
   void initState() {
     // TODO: implement initState
-    super.initState();WidgetsBinding.instance.addObserver(this);
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-     
       setState(() {});
     });
     searchController = TextEditingController();
     Future.delayed(Duration.zero, () {
+      getstocktopgainerC();
+
       // stocklistc();
     });
 
@@ -68,7 +77,8 @@ class _HomeScreenState extends State<HomeScreen>with WidgetsBindingObserver {
   @override
   void dispose() {
     // TODO: implement dispose
-    super.dispose();    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+    WidgetsBinding.instance.removeObserver(this);
     searchController.dispose();
   }
 
@@ -85,8 +95,7 @@ class _HomeScreenState extends State<HomeScreen>with WidgetsBindingObserver {
         var res = await ApisProvider().getsearchstocksP(keyword);
         // print(res);
         setState(() {
-          
-        searchlist.addAll(res);
+          searchlist.addAll(res);
         });
         print(searchlist);
       } catch (e) {
@@ -95,34 +104,41 @@ class _HomeScreenState extends State<HomeScreen>with WidgetsBindingObserver {
     });
   }
 
-  // stocklistc() async {stocklist.clear();
-  //   try {
-  //     var res = await ApisProvider().getstockslistP();
-  //     // setState(() {
-  //       for(int i=0;i<=res.length;i++){
-  //         if(res[i]['exchangeShortName']=='NSA'){
-  //           stocklist.addAll(res[i]);
-  //         }
-  //       }
-  //       // for (var e in res) {
-  //       //   if (e['exchangeShortName'] == 'NSA') {
-  //       //     stocklist.add(e);
-  //       //   }
-  //       //   print(e);
-  //       // }
-  //     // });
+  getstocktopgainerC() async {
+    topgainer.clear();
+    // profiledata.clear();
+    setState(() {
+      loading = true;
+    });
+    try {
+      var res = await ApisProvider().getstocktopgainerP();
+      var res2 = await ApisProvider().getstocktoploserP();
 
-  //     print(res[0]['exchangeShortName']);
-  //   } catch (e) {
-  //     showToast(e.toString());
-  //     print(e.toString());
-  //   }
-  // }
+      var res3 = await ApisProvider().getstockactiveP();
+      //  print(res['profile']['price'].toString());
+      // print(res2);
+      setState(() {
+        // List data = [];
+        // data.addAll(res);
+        // print(data);
+        topactive.addAll(res3);
+        toploser.addAll(res2);
+        topgainer.addAll(res);
+      });
+    } catch (e) {
+      showToast(e.toString());
+      print(e.toString());
+    }
+    setState(() {
+      loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     // stocklistc();
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: const CustomAppBar(),
         body: Column(
           children: [
@@ -141,10 +157,9 @@ class _HomeScreenState extends State<HomeScreen>with WidgetsBindingObserver {
                   ],
                 ),
                 child: TextFormField(
-                  onChanged: (value){
+                  onChanged: (value) {
                     setState(() {
-                      
-                     search(value);
+                      search(value);
                     });
                   },
                   controller: searchController,
@@ -154,17 +169,18 @@ class _HomeScreenState extends State<HomeScreen>with WidgetsBindingObserver {
                       color: const Color(0xff817979)),
                   cursorColor: Colors.black.withOpacity(0.4),
                   decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 4, horizontal: 15),
                       hintText: 'Search stocks or brands',
                       hintStyle: GoogleFonts.roboto(
                           fontWeight: FontWeight.w400,
                           fontSize: 14,
                           color: const Color(0xff817979)),
-                      prefixIcon: const Icon(
-                        Icons.arrow_back_ios_new_outlined,
-                        color: Colors.black,
-                        size: 15,
-                      ),
+                      // prefixIcon: const Icon(
+                      //   Icons.arrow_back_ios_new_outlined,
+                      //   color: Colors.black,
+                      //   size: 15,
+                      // ),
                       suffixIcon: searchController.text.isNotEmpty
                           ? IconButton(
                               color: Colors.grey,
@@ -189,128 +205,599 @@ class _HomeScreenState extends State<HomeScreen>with WidgetsBindingObserver {
             const SizedBox(
               height: 8,
             ),
-          searchlist.isEmpty&&searchController.text.isNotEmpty?const Expanded(child: Center(child: CircularProgressIndicator(color: kNavyBlue,),)):  searchlist.isNotEmpty&& searchController.text.isNotEmpty
-                ? Expanded(
-                    child: Column(
-                      children: [
-                        const SizedBox(
-                          height: 13,
-                        ),
-                        // Container(
-                        //   height: 47,
-                        //   width: double.infinity,
-                        //   color: const Color(0xfffaf7ec),
-                        //   padding: const EdgeInsets.symmetric(
-                        //       vertical: 12, horizontal: 20),
-                        //   child: ListView.builder(
-                        //       scrollDirection: Axis.horizontal,
-                        //       shrinkWrap: true,
-                        //       physics: const BouncingScrollPhysics(),
-                        //       itemCount: _items.length,
-                        //       itemBuilder: (context, index) {
-                        //         return GestureDetector(
-                        //           onTap: () {
-                        //             setState(() {
-                        //               currentIndex = index;
-                        //             });
-                        //           },
-                        //           child: AnimatedContainer(
-                        //             height: 24,
-                        //             // width: 79,
-                        //             margin: const EdgeInsets.symmetric(
-                        //                 horizontal: 6),
-                        //             padding: const EdgeInsets.symmetric(
-                        //                 horizontal: 15),
-                        //             decoration: BoxDecoration(
-                        //                 borderRadius: BorderRadius.circular(90),
-                        //                 color: currentIndex == index
-                        //                     ? const Color(0xff0B1344)
-                        //                     : Colors.white,
-                        //                 border: Border.all(
-                        //                     color: currentIndex == index
-                        //                         ? Colors.transparent
-                        //                         : const Color(0xffE5E1E1))),
-                        //             duration: const Duration(milliseconds: 300),
-                        //             child: Center(
-                        //                 child: Text(
-                        //               _items[index],
-                        //               style: GoogleFonts.roboto(
-                        //                   fontSize:
-                        //                       currentIndex == index ? 9 : 8,
-                        //                   fontWeight: FontWeight.w400,
-                        //                   color: currentIndex == index
-                        //                       ? Colors.white
-                        //                       : const Color(0xff232121)),
-                        //             )),
-                        //           ),
-                        //         );
-                        //       }),
-                        // ),
-                        const SizedBox(
-                          height: 8,
-                        ),
-                        Expanded(
-                          child: SizedBox(
-                            width: double.infinity,
-                            child:ListView.separated(
-      separatorBuilder: (context, index) {
-        return const SizedBox(
-          height: 9,
-        );
-      },
-      physics: const BouncingScrollPhysics(),
-      shrinkWrap: true,
-      itemCount: searchlist.length,
-      itemBuilder: (context, index) {
-        return InkWell(
-            onTap: (){
-              Navigator.of(context).push(MaterialPageRoute(builder: (context)=>StockDetails(
-                companyName:searchlist[index]['name'],
-                // stockPrice:_stockPrice[index],
-                symbol: searchlist[index]['symbol'],
-                // percent:_percentPrice[index],
-              )));
-            },
-            child: CustomStockTile(companyName: searchlist[index]['name'], abbCompanyName: searchlist[index]['symbol'], index: index));
-      },
-    )
-                          ),
-                        ),
-                      ],
+            searchlist.isEmpty && searchController.text.isNotEmpty
+                ? const Expanded(
+                    child: Center(
+                    child: CircularProgressIndicator(
+                      color: kNavyBlue,
                     ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Search examples',
-                          style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xff6A6A6C)),
+                  ))
+                : searchlist.isNotEmpty && searchController.text.isNotEmpty
+                    ? Expanded(
+                        child: Column(
+                          children: [
+                            const SizedBox(
+                              height: 13,
+                            ),
+                            // Container(
+                            //   height: 47,
+                            //   width: double.infinity,
+                            //   color: const Color(0xfffaf7ec),
+                            //   padding: const EdgeInsets.symmetric(
+                            //       vertical: 12, horizontal: 20),
+                            //   child: ListView.builder(
+                            //       scrollDirection: Axis.horizontal,
+                            //       shrinkWrap: true,
+                            //       physics: const BouncingScrollPhysics(),
+                            //       itemCount: _items.length,
+                            //       itemBuilder: (context, index) {
+                            //         return GestureDetector(
+                            //           onTap: () {
+                            //             setState(() {
+                            //               currentIndex = index;
+                            //             });
+                            //           },
+                            //           child: AnimatedContainer(
+                            //             height: 24,
+                            //             // width: 79,
+                            //             margin: const EdgeInsets.symmetric(
+                            //                 horizontal: 6),
+                            //             padding: const EdgeInsets.symmetric(
+                            //                 horizontal: 15),
+                            //             decoration: BoxDecoration(
+                            //                 borderRadius: BorderRadius.circular(90),
+                            //                 color: currentIndex == index
+                            //                     ? const Color(0xff0B1344)
+                            //                     : Colors.white,
+                            //                 border: Border.all(
+                            //                     color: currentIndex == index
+                            //                         ? Colors.transparent
+                            //                         : const Color(0xffE5E1E1))),
+                            //             duration: const Duration(milliseconds: 300),
+                            //             child: Center(
+                            //                 child: Text(
+                            //               _items[index],
+                            //               style: GoogleFonts.roboto(
+                            //                   fontSize:
+                            //                       currentIndex == index ? 9 : 8,
+                            //                   fontWeight: FontWeight.w400,
+                            //                   color: currentIndex == index
+                            //                       ? Colors.white
+                            //                       : const Color(0xff232121)),
+                            //             )),
+                            //           ),
+                            //         );
+                            //       }),
+                            // ),
+                            const SizedBox(
+                              height: 8,
+                            ),
+                            Expanded(
+                              child: SizedBox(
+                                  width: double.infinity,
+                                  child: ListView.separated(
+                                    separatorBuilder: (context, index) {
+                                      return const SizedBox(
+                                        height: 9,
+                                      );
+                                    },
+                                    physics: const BouncingScrollPhysics(),
+                                    shrinkWrap: true,
+                                    itemCount: searchlist.length,
+                                    itemBuilder: (context, index) {
+                                      return InkWell(
+                                          onTap: () {
+                                            print(searchlist[index]);
+                                            Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        StockDetails(
+                                                          companyName:
+                                                              searchlist[index]
+                                                                  ['name'],
+                                                          // stockPrice:_stockPrice[index],
+                                                          symbol:
+                                                              searchlist[index]
+                                                                  ['symbol'],
+                                                          // percent:_percentPrice[index],
+                                                        )));
+                                          },
+                                          child: CustomStockTile(
+                                              companyName: searchlist[index]
+                                                  ['name'],
+                                              abbCompanyName: searchlist[index]
+                                                  ['symbol'],
+                                              index: index));
+                                    },
+                                  )),
+                            ),
+                          ],
                         ),
-                        SearchRows(text: 'TCS'),
-                        const SizedBox(
-                          height: 10,
+                      )
+                    : Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                          child: loading
+                              ? Center(
+                                  child: CircularProgressIndicator(
+                                    color: kNavyBlue,
+                                  ),
+                                )
+                              : SingleChildScrollView(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.all(5.0),
+                                        child: Row(
+                                          children: [
+                                            Text(
+                                              'Top Gainers',
+                                              style: BaseStyles.blacklarge16,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.24,
+                                        child: ListView.builder(
+                                            scrollDirection: Axis.horizontal,
+                                            itemCount: topgainer.length,
+                                            itemBuilder:
+                                                (BuildContext context,
+                                                        int index) =>
+                                                    SizedBox(
+                                                      width:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .height *
+                                                              0.30,
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(2.0),
+                                                        child: Card(
+                                                          elevation: 3,
+                                                          child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(8.0),
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                heightSpace10,
+                                                                Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .analytics,
+                                                                      color: Colors
+                                                                          .green,
+                                                                      size: 20,
+                                                                    ),
+                                                                    widthSpace5,
+                                                                    Text(
+                                                                      "${topgainer[index]['symbol']}",
+                                                                      style: BaseStyles
+                                                                          .blackMedium18,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                heightSpace5,
+                                                                Text(
+                                                                  "${topgainer[index]['name']}",
+                                                                  maxLines: 2,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  style: BaseStyles
+                                                                      .blackMedium15,
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .start,
+                                                                ),
+                                                                heightSpace5,
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "Price: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Text(
+                                                                      topgainer[index]['price'].toString().length <
+                                                                              6
+                                                                          ? "${topgainer[index]['price']}"
+                                                                          : topgainer[index]['price'].toString().substring(
+                                                                              0,
+                                                                              6),
+                                                                      style: BaseStyles
+                                                                          .blackMedium16,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                heightSpace5,
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "%Changes: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Text(
+                                                                      topgainer[index]['changesPercentage'].toString().length <
+                                                                              6
+                                                                          ? "${topgainer[index]['changesPercentage']}"
+                                                                          : topgainer[index]['changesPercentage'].toString().substring(
+                                                                              0,
+                                                                              6),
+                                                                      style: BaseStyles
+                                                                          .blackMedium16,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "change: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Row(
+                                                                      children: [
+                                                                        Icon(
+                                                                          Icons
+                                                                              .arrow_drop_up_outlined,
+                                                                          color:
+                                                                              AppColors.primaryColor2,
+                                                                          size:
+                                                                              30,
+                                                                        ),
+                                                                        Text(
+                                                                          "+ ${topgainer[index]['change']}%",
+                                                                          style:
+                                                                              BaseStyles.greenMedium14,
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                // heightSpace5,
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    )),
+                                      ),
+                                      heightSpace20,
+                                      Padding(
+                                        padding: const EdgeInsets.all(5.0),
+                                        child: Row(
+                                          children: [
+                                            Text(
+                                              'Top Losers',
+                                              style: BaseStyles.blacklarge16,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.24,
+                                        child: ListView.builder(
+                                            scrollDirection: Axis.horizontal,
+                                            itemCount: toploser.length,
+                                            itemBuilder:
+                                                (BuildContext context,
+                                                        int index) =>
+                                                    SizedBox(
+                                                      width:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .height *
+                                                              0.30,
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(2.0),
+                                                        child: Card(
+                                                          elevation: 3,
+                                                          child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(8.0),
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                heightSpace10,
+                                                                Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .analytics,
+                                                                      color: Colors
+                                                                          .red,
+                                                                      size: 20,
+                                                                    ),
+                                                                    widthSpace5,
+                                                                    Text(
+                                                                      "${toploser[index]['symbol']}",
+                                                                      style: BaseStyles
+                                                                          .blackMedium18,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                heightSpace5,
+                                                                Text(
+                                                                  "${toploser[index]['name']}",
+                                                                  style: BaseStyles
+                                                                      .blackMedium15,
+                                                                  maxLines: 2,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                ),
+                                                                heightSpace5,
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "Price: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Text(
+                                                                      toploser[index]['price'].toString().length <
+                                                                              6
+                                                                          ? "${toploser[index]['price']}"
+                                                                          : toploser[index]['price'].toString().substring(
+                                                                              0,
+                                                                              6),
+                                                                      style: BaseStyles
+                                                                          .blackMedium16,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                heightSpace5,
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "%Changes: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Text(
+                                                                      toploser[index]['changesPercentage'].toString().length <
+                                                                              6
+                                                                          ? "${toploser[index]['changesPercentage']}"
+                                                                          : toploser[index]['changesPercentage'].toString().substring(
+                                                                              0,
+                                                                              6),
+                                                                      style: BaseStyles
+                                                                          .blackMedium16,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "change: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Row(
+                                                                      children: [
+                                                                        Icon(
+                                                                          Icons
+                                                                              .arrow_drop_up_outlined,
+                                                                          color:
+                                                                              Colors.red,
+                                                                          size:
+                                                                              30,
+                                                                        ),
+                                                                        Text(
+                                                                          "${toploser[index]['change']}%",
+                                                                          style:
+                                                                              BaseStyles.redMedium14,
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                // heightSpace5,
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    )),
+                                      ),
+                                      heightSpace20,
+                                      Padding(
+                                        padding: const EdgeInsets.all(5.0),
+                                        child: Row(
+                                          children: [
+                                            Text(
+                                              'Most Active Stock',
+                                              style: BaseStyles.blacklarge16,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.24,
+                                        child: ListView.builder(
+                                            scrollDirection: Axis.horizontal,
+                                            itemCount: topactive.length,
+                                            itemBuilder:
+                                                (BuildContext context,
+                                                        int index) =>
+                                                    SizedBox(
+                                                      width:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .height *
+                                                              0.30,
+                                                      child: Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(2.0),
+                                                        child: Card(
+                                                          elevation: 3,
+                                                          child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(8.0),
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                heightSpace10,
+                                                                Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .analytics,
+                                                                      color:
+                                                                          kNavyBlue,
+                                                                      size: 20,
+                                                                    ),
+                                                                    widthSpace5,
+                                                                    Text(
+                                                                      "${topactive[index]['symbol']}",
+                                                                      style: BaseStyles
+                                                                          .blackMedium18,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                heightSpace5,
+                                                                Text(
+                                                                  "${topactive[index]['name']}",
+                                                                  maxLines: 2,
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  style: BaseStyles
+                                                                      .blackMedium15,
+                                                                ),
+                                                                heightSpace5,
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "Price: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Text(
+                                                                      topactive[index]['price'].toString().length <
+                                                                              6
+                                                                          ? "${topactive[index]['price']}"
+                                                                          : topactive[index]['price'].toString().substring(
+                                                                              0,
+                                                                              6),
+                                                                      style: BaseStyles
+                                                                          .blackMedium16,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                heightSpace5,
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "%Changes: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Text(
+                                                                      topactive[index]['changesPercentage'].toString().length <
+                                                                              6
+                                                                          ? "${topactive[index]['changesPercentage']}"
+                                                                          : topactive[index]['changesPercentage'].toString().substring(
+                                                                              0,
+                                                                              6),
+                                                                      style: BaseStyles
+                                                                          .blackMedium16,
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                Row(
+                                                                  mainAxisAlignment:
+                                                                      MainAxisAlignment
+                                                                          .spaceBetween,
+                                                                  children: [
+                                                                    Text(
+                                                                      "change: ",
+                                                                      style: BaseStyles
+                                                                          .blacNormal15,
+                                                                    ),
+                                                                    Row(
+                                                                      children: [
+                                                                        Icon(
+                                                                          Icons
+                                                                              .arrow_drop_up_outlined,
+                                                                          color:
+                                                                              Colors.red,
+                                                                          size:
+                                                                              30,
+                                                                        ),
+                                                                        Text(
+                                                                          "${topactive[index]['change']}%",
+                                                                          style:
+                                                                              BaseStyles.redMedium14,
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                // heightSpace5,
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    )),
+                                      ),
+                                      heightSpace10,
+                                    ],
+                                  ),
+                                ),
                         ),
-                        SearchRows(text: 'Indigo'),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        SearchRows(text: 'Adani Enterprises Ltd'),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        SearchRows(text: 'HDFC Bank'),
-                        const SizedBox(
-                          height: 10,
-                        ),
-                        SearchRows(text: 'Parachute'),
-                      ],
-                    ),
-                  )
+                      )
           ],
         ));
   }

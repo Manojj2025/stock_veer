@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:horizontal_data_table/refresh/pull_to_refresh/src/smart_refresher.dart';
 import 'package:intl/intl.dart';
 import 'package:readmore/readmore.dart';
 import 'package:stock_veer/custom%20widgets/bullet_text.dart';
@@ -39,22 +40,28 @@ class StockDetails extends StatefulWidget {
 class _StockDetailsState extends State<StockDetails> {
   Map alldata = {};
   bool loading2 = false;
+
+  bool loading3 = false;
   bool loading = false;
   String d_s = 'dividend';
   double matrixmrkcap = 0.0;
   double mrkcap = 0.0;
 
   double mrkcap2 = 0.0;
+  List report = [];
+  List reportname = [];
+  List commoditylist = [];
+  List companyName = [];
   List name = [
     'Overview',
-    'Future & Options',
+    'Financial Statement',
     'My Metrics',
     'Peers',
     // 'Fundamentals',
     'Technicals',
     'Shareholding',
     'Reports',
-    'Deals',
+    'Commodity',
     'News',
     'Documents',
     'Corporate Actions'
@@ -70,9 +77,14 @@ class _StockDetailsState extends State<StockDetails> {
   String selectshareholddate = '';
   List split = [];
   String selectpeer = '';
+  List selectmultipeer = [];
+
+  String selectreportname = '';
+  String selectnewsname = 'Stock News';
   List dividend = [];
   Map materixdata = {};
   List peers = [];
+  List newsname = ["Stock News", "Crypto News", "Forex News", "General News"];
   List profiledata = [];
   List alldays = [
     '1D',
@@ -101,8 +113,10 @@ class _StockDetailsState extends State<StockDetails> {
   ];
   String selectmin = '1min';
   String selectday = '1day';
-  // RxList<Results> chartData = RxList<Results>([]);
-  //  List<Results> chartData=List;
+
+  RefreshController refreshController = RefreshController(initialRefresh: true);
+  final listController = ScrollController();
+  int page = 1;
   late ZoomPanBehavior zoomPanBehavior;
   @override
   void initState() {
@@ -119,6 +133,7 @@ class _StockDetailsState extends State<StockDetails> {
     Future.delayed(Duration.zero, () {
       getstocksdetaillistC();
       getgraphstocksdetailC();
+      // getpricetargetlistC();
       // getpeersC();
     });
   }
@@ -139,8 +154,9 @@ class _StockDetailsState extends State<StockDetails> {
         peers.addAll(data[0]['peersList']);
         // print(peers[0].toString());
         if (peers.isNotEmpty) {
-          selectpeer = peers[0];
-          getcompanydetaillistC(selectpeer.toString());
+          selectmultipeer.add(peers[0]);
+          print(selectmultipeer.toString() + 'manoj');
+          getcompanydetaillistC(selectmultipeer[0].toString());
         }
       });
       // print(peers[0]['peersList'][3].toString() + 'mmm');
@@ -170,30 +186,88 @@ class _StockDetailsState extends State<StockDetails> {
     });
   }
 
-  getcompanydetaillistC(name) async {
-    profiledata.clear();
+  getpricetargetlistC() async {
+    reportname.clear();
+    // profiledata.clear();
+    setState(() {
+      loading = true;
+    });
+    try {
+      var res = await ApisProvider().getpricetargetlistP(widget.symbol);
+      //  print(res['profile']['price'].toString());
+      // print(res2);
+      setState(() {
+        // List data = [];
+        // data.addAll(res);
+        // print(data);
+        reportname.addAll(res);
+        print(reportname.toString() + 'sorry');
+        // print(peers[0].toString());
+        if (reportname.isNotEmpty) {
+          selectreportname = reportname[0]['analystCompany'].toString();
+          print(selectreportname.toString() + 'kkkk');
+          getpricetargetdetailC(selectreportname.toString());
+        }
+      });
+    } catch (e) {
+      showToast(e.toString());
+      print(e.toString());
+    }
+    setState(() {
+      loading = false;
+    });
+  }
+
+  getpricetargetdetailC(name) async {
+    print(name);
+    setState(() {
+      loading3 = true;
+      // loading = true;
+    });
+    report.clear();
     // setState(() {
     //   loading = true;
     // });
+    try {
+      var res = await ApisProvider().getpricetargetdetailP(name);
+      //  print(res['profile']['price'].toString());
+      // print(res2);
+      setState(() {
+        report.addAll(res);
+      });
+      print(report.toString() + 'all');
+    } catch (e) {
+      showToast(e.toString());
+      print(e.toString());
+    }
+    setState(() {
+      loading3 = false;
+    });
+  }
+
+  getcompanydetaillistC(name) async {
+    profiledata.clear();
+    setState(() {
+      loading2 = true;
+    });
     try {
       var res = await ApisProvider().getcompanydetaillistP(name);
       //  print(res['profile']['price'].toString());
       // print(res2);
       setState(() {
         profiledata.addAll(res);
-        if (profiledata[0]['mktCap'] != null) {
-          var a = int.parse(profiledata[0]['mktCap'].toString()) / 100000000;
-          mrkcap2 = double.parse(a.toStringAsFixed(2));
-        }
+        // for (var i = 0; i < count; i++) {
+
+        // }
       });
       print(profiledata);
     } catch (e) {
       showToast(e.toString());
       print(e.toString());
     }
-    // setState(() {
-    //   loading = false;
-    // });
+    setState(() {
+      loading2 = false;
+    });
   }
 
   getgraphtechnicalssdetailC() async {
@@ -220,7 +294,6 @@ class _StockDetailsState extends State<StockDetails> {
   }
 
   getgraphstocksdetailC() async {
- 
     allstock.clear();
 
     try {
@@ -228,7 +301,7 @@ class _StockDetailsState extends State<StockDetails> {
           .getgraphstocksdetailP(widget.symbol.toString(), selectday);
       //  print(res['profile']['price'].toString());
       // print(res2);
-         if (!mounted) {
+      if (!mounted) {
         return;
       }
       setState(() {
@@ -295,7 +368,6 @@ class _StockDetailsState extends State<StockDetails> {
   }
 
   getstocksdetaillistC() async {
-   
     setState(() {
       loading = true;
     });
@@ -314,6 +386,7 @@ class _StockDetailsState extends State<StockDetails> {
           mrkcap = double.parse(a.toStringAsFixed(2));
         }
       });
+      print(alldata);
     } catch (e) {
       showToast(e.toString());
       print(e.toString());
@@ -348,6 +421,27 @@ class _StockDetailsState extends State<StockDetails> {
     });
   }
 
+  getcommodityC() async {
+    commoditylist.clear();
+    setState(() {
+      loading = true;
+    });
+    try {
+      var res2 = await ApisProvider().getquotescommodityP();
+      //  print(res['profile']['price'].toString());
+      // print(res2);
+      setState(() {
+        commoditylist.addAll(res2);
+      });
+    } catch (e) {
+      showToast(e.toString());
+      print(e.toString());
+    }
+    setState(() {
+      loading = false;
+    });
+  }
+
   getnewsC() async {
     newsdata.clear();
     setState(() {
@@ -355,6 +449,69 @@ class _StockDetailsState extends State<StockDetails> {
     });
     try {
       var res2 = await ApisProvider().getstocknewsP();
+      //  print(res['profile']['price'].toString());
+      // print(res2);
+      setState(() {
+        newsdata.addAll(res2);
+      });
+    } catch (e) {
+      showToast(e.toString());
+      print(e.toString());
+    }
+    setState(() {
+      loading = false;
+    });
+  }
+
+  getcryptoC() async {
+    newsdata.clear();
+    setState(() {
+      loading = true;
+    });
+    try {
+      var res2 = await ApisProvider().getcryptonewsP();
+      //  print(res['profile']['price'].toString());
+      // print(res2);
+      setState(() {
+        newsdata.addAll(res2);
+      });
+    } catch (e) {
+      showToast(e.toString());
+      print(e.toString());
+    }
+    setState(() {
+      loading = false;
+    });
+  }
+
+  getforexC() async {
+    newsdata.clear();
+    setState(() {
+      loading = true;
+    });
+    try {
+      var res2 = await ApisProvider().getfoxesnewsP();
+      //  print(res['profile']['price'].toString());
+      // print(res2);
+      setState(() {
+        newsdata.addAll(res2);
+      });
+    } catch (e) {
+      showToast(e.toString());
+      print(e.toString());
+    }
+    setState(() {
+      loading = false;
+    });
+  }
+
+  getgeneralnewC() async {
+    newsdata.clear();
+    setState(() {
+      loading = true;
+    });
+    try {
+      var res2 = await ApisProvider().getgenernalnewsP();
       //  print(res['profile']['price'].toString());
       // print(res2);
       setState(() {
@@ -396,6 +553,7 @@ class _StockDetailsState extends State<StockDetails> {
 
   @override
   Widget build(BuildContext context) {
+    print(alldata);
     print(widget.symbol.toString());
     print(peers);
     List<String> _pros = [
@@ -452,13 +610,14 @@ class _StockDetailsState extends State<StockDetails> {
           padding: const EdgeInsets.all(8.0),
           child: Column(
             children: [
-              Divider(
-                height: 0.5,
-                color: kNavyBlue,
-                thickness: 0.5,
-              ),
+              //   Divider(
+              //     height: 0.5,
+              //     color: kNavyBlue,
+              //     thickness: 0.5,
+              //   ),
               // heightSpace5,
-              SizedBox(
+              Container(
+                // color: Colors.grey.shade200,
                 height: MediaQuery.of(context).size.height * 0.05,
                 child: ListView.builder(
                     shrinkWrap: true,
@@ -483,6 +642,10 @@ class _StockDetailsState extends State<StockDetails> {
                                   getgraphtechnicalssdetailC();
                                 } else if (index == 3) {
                                   getpeersC();
+                                } else if (index == 6) {
+                                  getpricetargetlistC();
+                                } else if (index == 7) {
+                                  getcommodityC();
                                 }
                               });
                             },
@@ -491,7 +654,7 @@ class _StockDetailsState extends State<StockDetails> {
                               width: MediaQuery.of(context).size.width * 0.35,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(1),
+                                  borderRadius: BorderRadius.circular(30),
                                   color: selectname == name[index]
                                       ? kNavyBlue
                                       : Colors.white),
@@ -503,7 +666,7 @@ class _StockDetailsState extends State<StockDetails> {
                                       color: selectname == name[index]
                                           ? Colors.white
                                           : kNavyBlue,
-                                      fontSize: 14,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.bold),
                                 ),
                               ),
@@ -516,12 +679,12 @@ class _StockDetailsState extends State<StockDetails> {
                       );
                     }),
               ),
-              // heightSpace5,
-              Divider(
-                height: 0.5,
-                color: kNavyBlue,
-                thickness: 0.5,
-              ),
+              heightSpace20,
+              // Divider(
+              //   height: 0.5,
+              //   color: kNavyBlue,
+              //   thickness: 0.5,
+              // ),
               loading
                   ? const Center(
                       child: CircularProgressIndicator(
@@ -1029,7 +1192,7 @@ class _StockDetailsState extends State<StockDetails> {
                             ],
                           ),
                         )
-                      : selectname == 'Future & Options'
+                      : selectname == 'Financial Statement'
                           ? Expanded(
                               child: Padding(
                                 padding:
@@ -1445,848 +1608,1480 @@ class _StockDetailsState extends State<StockDetails> {
                                       ),
                                     )
                                   : selectname == 'Peers'
-                                      ? Column(
-                                          children: [
-                                            heightSpace20,
-                                            SizedBox(
-                                              height: MediaQuery.of(context)
-                                                      .size
-                                                      .height *
-                                                  0.05,
-                                              child: ListView.builder(
-                                                  shrinkWrap: true,
-                                                  scrollDirection:
-                                                      Axis.horizontal,
-                                                  itemCount: peers.length,
-                                                  itemBuilder:
-                                                      (BuildContext context,
-                                                          int index) {
-                                                    return Row(
-                                                      children: [
-                                                        InkWell(
-                                                          onTap: () {
-                                                            setState(() {
-                                                              selectpeer =
-                                                                  peers[index];
-                                                              getcompanydetaillistC(
-                                                                  peers[index]);
-                                                            });
-                                                          },
-                                                          child: Container(
-                                                            // height: 35,
-                                                            width: MediaQuery.of(
-                                                                        context)
-                                                                    .size
-                                                                    .width *
-                                                                0.30,
-                                                            alignment: Alignment
-                                                                .center,
-                                                            decoration: BoxDecoration(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            1),
-                                                                color: selectpeer ==
+                                      ? Expanded(
+                                          child: SingleChildScrollView(
+                                            child: Column(
+                                              children: [
+                                                // heightSpace20,
+                                                Wrap(
+                                                  children: List.generate(
+                                                      peers.length,
+                                                      (index) => Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(2.0),
+                                                            child: InkWell(
+                                                              onTap: () {
+                                                                setState(() {
+                                                                  if (!selectmultipeer
+                                                                      .contains(
+                                                                          peers[
+                                                                              index])) {
+                                                                    selectmultipeer
+                                                                        .add(peers[
+                                                                            index]);
+                                                                    getcompanydetaillistC(
+                                                                        selectmultipeer
+                                                                            .join(','));
+                                                                    print(selectmultipeer
+                                                                            .join(',')
+                                                                            .toString() +
+                                                                        'manoj');
+                                                                    selectpeer =
                                                                         peers[
-                                                                            index]
-                                                                    ? kNavyBlue
-                                                                        .withOpacity(
-                                                                            0.6)
-                                                                    : AppColors
-                                                                        .greyprimarycolor
-                                                                        .shade200),
-                                                            child: Padding(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .all(5.0),
-                                                              child: Text(
-                                                                peers[index],
-                                                                style: TextStyle(
-                                                                    color: selectpeer ==
-                                                                            peers[
-                                                                                index]
-                                                                        ? Colors
-                                                                            .white
-                                                                        : kNavyBlue,
-                                                                    fontSize:
-                                                                        12,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold),
+                                                                            index];
+                                                                  } else {
+                                                                    selectmultipeer
+                                                                        .remove(
+                                                                            peers[index]);
+                                                                    getcompanydetaillistC(
+                                                                        selectmultipeer
+                                                                            .join(','));
+                                                                  }
+                                                                });
+                                                              },
+                                                              child: Container(
+                                                                // height: 35,
+                                                                // width: MediaQuery.of(
+                                                                //             context)
+                                                                //         .size
+                                                                //         .width *
+                                                                //     0.30,
+                                                                // alignment: Alignment
+                                                                //     .center,
+                                                                decoration: BoxDecoration(
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                            30),
+                                                                    color: selectmultipeer.contains(peers[
+                                                                            index])
+                                                                        ? kNavyBlue
+                                                                        : AppColors
+                                                                            .greyprimarycolor
+                                                                            .shade200),
+                                                                child: Padding(
+                                                                  padding:
+                                                                      const EdgeInsets
+                                                                              .all(
+                                                                          5.0),
+                                                                  child: Text(
+                                                                    peers[
+                                                                        index],
+                                                                    style: TextStyle(
+                                                                        color: selectmultipeer.contains(peers[index])
+                                                                            ? Colors
+                                                                                .white
+                                                                            : kNavyBlue,
+                                                                        fontSize:
+                                                                            12,
+                                                                        fontWeight:
+                                                                            FontWeight.bold),
+                                                                  ),
+                                                                ),
                                                               ),
                                                             ),
-                                                          ),
-                                                        ),
-                                                        SizedBox(
-                                                          width: 10,
-                                                        )
-                                                      ],
-                                                    );
-                                                  }),
-                                            ),
-                                            heightSpace10,
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Peers',
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: kNavyBlue,
-                                                  ),
+                                                          )),
                                                 ),
-                                                const SizedBox(
-                                                  height: 5,
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
+
+                                                heightSpace10,
+                                                Column(
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
-                                                      'Company Name',
+                                                      'Peers',
                                                       style:
                                                           GoogleFonts.poppins(
-                                                        fontSize: 14,
+                                                        fontSize: 16,
                                                         fontWeight:
-                                                            FontWeight.w500,
+                                                            FontWeight.bold,
                                                         color: kNavyBlue,
                                                       ),
                                                     ),
-                                                    Expanded(
-                                                      child: Text(
-                                                        profiledata.isEmpty
-                                                            ? ''
-                                                            : "${profiledata[0]['companyName'].toString()}",
-                                                        textAlign:
-                                                            TextAlign.right,
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                          fontSize: 14,
-                                                          fontWeight:
-                                                              FontWeight.w400,
-                                                          color: const Color(
-                                                              0xff1F1D1D),
-                                                        ),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                                const SizedBox(
-                                                  height: 5,
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      'Price',
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: kNavyBlue,
-                                                      ),
+                                                    const SizedBox(
+                                                      height: 5,
                                                     ),
-                                                    Text(
-                                                      profiledata.isEmpty
-                                                          ? ''
-                                                          : "${profiledata[0]['price'].toString()}",
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w400,
-                                                        color: const Color(
-                                                            0xff1F1D1D),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                                const SizedBox(
-                                                  height: 5,
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      '%chg',
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: kNavyBlue,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      profiledata.isEmpty
-                                                          ? ''
-                                                          : "${profiledata[0]['changes'].toString()}",
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w400,
-                                                        color: const Color(
-                                                            0xff1F1D1D),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                                const SizedBox(
-                                                  height: 5,
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      'Market Cap.',
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: kNavyBlue,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      profiledata.isEmpty
-                                                          ? ''
-                                                          : "${mrkcap2.toString()} Cr.",
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w400,
-                                                        color: const Color(
-                                                            0xff1F1D1D),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                                const SizedBox(
-                                                  height: 5,
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      '%volAvg',
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: kNavyBlue,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      profiledata.isEmpty
-                                                          ? ''
-                                                          : "${profiledata[0]['volAvg'].toString()}",
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w400,
-                                                        color: const Color(
-                                                            0xff1F1D1D),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                                const SizedBox(
-                                                  height: 5,
-                                                ),
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    Text(
-                                                      '%lastDiv',
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                        color: kNavyBlue,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      profiledata.isEmpty
-                                                          ? ''
-                                                          : profiledata[0][
-                                                                          'lastDiv']
-                                                                      .toString()
-                                                                      .length <
-                                                                  5
-                                                              ? profiledata[0][
-                                                                      'lastDiv']
-                                                                  .toString()
-                                                              : profiledata[0][
-                                                                      'lastDiv']
-                                                                  .toString()
-                                                                  .substring(
-                                                                      0, 5),
-                                                      style:
-                                                          GoogleFonts.poppins(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.w400,
-                                                        color: const Color(
-                                                            0xff1F1D1D),
-                                                      ),
-                                                    )
-                                                  ],
-                                                ),
-                                              ],
-                                            )
-                                          ],
-                                        )
-                                      : selectname == 'News'
-                                          ? Expanded(
-                                              child: ListView.builder(
-                                                  // physics: NeverScrollableScrollPhysics(),
-                                                  itemCount: newsdata.length,
-                                                  itemBuilder:
-                                                      (BuildContext context,
-                                                          int index) {
-                                                    return Column(children: [
-                                                      Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          InkWell(
-                                                            onTap: () {
-                                                              Navigator.of(context).push(
-                                                                  MaterialPageRoute(
-                                                                      builder: (context) =>
-                                                                          NewsDetails(
-                                                                            data:
-                                                                                newsdata[index],
-                                                                          )));
-                                                            },
-                                                            child: Container(
-                                                              decoration:
-                                                                  decorationbox2(
-                                                                      opacity:
-                                                                          0.1),
-                                                              child: Row(
-                                                                children: [
-                                                                  SizedBox(
-                                                                    height: MediaQuery.of(context)
-                                                                            .size
-                                                                            .height *
-                                                                        0.10,
-                                                                    width: MediaQuery.of(context)
-                                                                            .size
-                                                                            .width *
-                                                                        0.35,
+                                                    loading2
+                                                        ? Center(
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              color: kNavyBlue,
+                                                            ),
+                                                          )
+                                                        : profiledata.isEmpty &&
+                                                                !loading3
+                                                            ? Center(
+                                                                child: Text(
+                                                                'No Data',
+                                                                style: BaseStyles
+                                                                    .grey1Medium14,
+                                                              ))
+                                                            : ListView.builder(
+                                                                physics:
+                                                                    NeverScrollableScrollPhysics(),
+                                                                shrinkWrap:
+                                                                    true,
+                                                                itemCount:
+                                                                    profiledata
+                                                                        .length,
+                                                                itemBuilder:
+                                                                    (BuildContext
+                                                                            context,
+                                                                        int i) {
+                                                                  if (profiledata[
+                                                                              i]
+                                                                          [
+                                                                          'marketCap'] !=
+                                                                      null) {
+                                                                    // setState(() {
+                                                                    var a = int.parse(
+                                                                            profiledata[i]['marketCap'].toString()) /
+                                                                        100000000;
+                                                                    mrkcap2 = double.parse(
+                                                                        a.toStringAsFixed(
+                                                                            2));
+                                                                    print(a.toString() +
+                                                                        'mj');
+                                                                    // });
+
+                                                                    // a.add();
+                                                                    // print(
+                                                                    //     a[i].toString() +
+                                                                    //         'mm');
+                                                                    // mrkcap2.add(
+                                                                    //     double.parse(a
+                                                                    //         .toStringAsFixed(
+                                                                    //             2)));
+                                                                  }
+                                                                  return Card(
+                                                                    elevation:
+                                                                        3,
                                                                     child:
-                                                                        ClipRRect(
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                              5),
-                                                                      child: newsdata
-                                                                              .isEmpty
-                                                                          ? Container()
-                                                                          : CachedNetworkImage(
-                                                                              imageBuilder: (context, imageProvider) => Container(
-                                                                                // height: 60.0,
-                                                                                decoration: BoxDecoration(
-                                                                                  image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
-                                                                                ),
-                                                                              ),
-                                                                              imageUrl: newsdata[index]['image'].toString(),
-                                                                              // height: 80,
-                                                                              // width: 100,
-                                                                              fit: BoxFit.contain,
-                                                                              placeholder: (context, url) => const Center(
-                                                                                  child: CircularProgressIndicator(
-                                                                                color: AppColors.blackColor,
-                                                                              )),
-                                                                              errorWidget: (context, url, error) => const Icon(Icons.error),
-                                                                            ),
-                                                                    ),
-                                                                  ),
-                                                                  widthSpace10,
-                                                                  Expanded(
-                                                                    child:
-                                                                        Container(
+                                                                        Padding(
                                                                       padding:
                                                                           const EdgeInsets.all(
-                                                                              10),
-                                                                      child: Column(
-                                                                          crossAxisAlignment: CrossAxisAlignment
-                                                                              .start,
-                                                                          mainAxisAlignment:
-                                                                              MainAxisAlignment.spaceBetween,
-                                                                          children: [
-                                                                            Text(
-                                                                              newsdata[index]['symbol'].toString(),
-                                                                              style: BaseStyles.grey1Medium14,
-                                                                              maxLines: 2,
-                                                                              overflow: TextOverflow.ellipsis,
-                                                                            ),
-                                                                            heightSpace3,
-                                                                            Text(
-                                                                              newsdata[index]['title'].toString(),
-                                                                              style: BaseStyles.blackMedium14,
-                                                                              maxLines: 2,
-                                                                              overflow: TextOverflow.ellipsis,
-                                                                            ),
-                                                                            heightSpace3,
-                                                                            Text(
-                                                                              newsdata[index]['publishedDate'].toString().substring(0, 10),
-                                                                              style: BaseStyles.grey3Normal10,
-                                                                            ),
-                                                                            // const Icon(
-                                                                            //   Icons.share,
-                                                                            //   color: AppColors.greycolor,
-                                                                            // )
-                                                                          ]),
-                                                                    ),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          heightSpace10
-                                                        ],
-                                                      )
-                                                    ]);
-                                                  }),
-                                            )
-                                          : selectname == 'Corporate Actions'
-                                              ? Expanded(
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.all(
-                                                            0.0),
-                                                    child:
-                                                        SingleChildScrollView(
-                                                      child: Column(
-                                                        children: [
-                                                          heightSpace20,
-                                                          Row(
-                                                            children: [
-                                                              GestureDetector(
-                                                                onTap: () {
-                                                                  setState(() {
-                                                                    d_s =
-                                                                        'dividend';
-                                                                  });
-                                                                },
-                                                                child:
-                                                                    Container(
-                                                                  decoration: decorationbox2(
-                                                                      color: d_s ==
-                                                                              'dividend'
-                                                                          ? kNavyBlue
-                                                                          : AppColors
-                                                                              .greyprimarycolor
-                                                                              .shade400,
-                                                                      radius:
-                                                                          5.0),
-                                                                  child:
-                                                                      Padding(
-                                                                    padding:
-                                                                        const EdgeInsets.all(
-                                                                            8.0),
-                                                                    child: Text(
-                                                                      'Dividend',
-                                                                      style: BaseStyles
-                                                                          .whitebold14,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              widthSpace20,
-                                                              GestureDetector(
-                                                                onTap: () {
-                                                                  setState(() {
-                                                                    d_s =
-                                                                        'split';
-                                                                  });
-                                                                },
-                                                                child:
-                                                                    Container(
-                                                                  decoration: decorationbox2(
-                                                                      color: d_s ==
-                                                                              'split'
-                                                                          ? kNavyBlue
-                                                                          : AppColors
-                                                                              .greyprimarycolor
-                                                                              .shade400,
-                                                                      radius:
-                                                                          5.0),
-                                                                  child:
-                                                                      Padding(
-                                                                    padding:
-                                                                        const EdgeInsets.all(
-                                                                            8.0),
-                                                                    child: Text(
-                                                                      'Split',
-                                                                      style: BaseStyles
-                                                                          .whitebold14,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              )
-                                                            ],
-                                                          ),
-                                                          heightSpace10,
-                                                          Divider(),
-                                                          heightSpace10,
-                                                          Column(
-                                                            crossAxisAlignment:
-                                                                CrossAxisAlignment
-                                                                    .start,
-                                                            children: [
-                                                              Row(
-                                                                children: [
-                                                                  Icon(
-                                                                    Icons
-                                                                        .history,
-                                                                    color:
-                                                                        kNavyBlue,
-                                                                  ),
-                                                                  widthSpace5,
-                                                                  Text(
-                                                                    d_s == 'dividend'
-                                                                        ? 'Dividend History'
-                                                                        : 'Split History',
-                                                                    style: BaseStyles
-                                                                        .blackMedium16,
-                                                                  )
-                                                                ],
-                                                              ),
-                                                              heightSpace10,
-                                                              Row(
-                                                                crossAxisAlignment:
-                                                                    CrossAxisAlignment
-                                                                        .start,
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .spaceBetween,
-                                                                children: [
-                                                                  Expanded(
-                                                                    child: Text(
-                                                                      'EX-DATE',
-                                                                      style: BaseStyles
-                                                                          .greyMedium13,
-                                                                    ),
-                                                                  ),
-                                                                  widthSpace5,
-                                                                  d_s != 'split'
-                                                                      ? Expanded(
-                                                                          child:
+                                                                              8.0),
+                                                                      child:
+                                                                          Column(
+                                                                        children: [
+                                                                          Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            crossAxisAlignment:
+                                                                                CrossAxisAlignment.start,
+                                                                            children: [
                                                                               Text(
-                                                                            'DIVIDEND AMOUNT',
-                                                                            style:
-                                                                                BaseStyles.greyMedium13,
+                                                                                'Company Name',
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                  color: kNavyBlue,
+                                                                                ),
+                                                                              ),
+                                                                              Expanded(
+                                                                                child: Text(
+                                                                                  profiledata.isEmpty ? '' : "${profiledata[i]['name'].toString()}",
+                                                                                  textAlign: TextAlign.right,
+                                                                                  style: GoogleFonts.poppins(
+                                                                                    fontSize: 14,
+                                                                                    fontWeight: FontWeight.w400,
+                                                                                    color: const Color(0xff1F1D1D),
+                                                                                  ),
+                                                                                ),
+                                                                              )
+                                                                            ],
                                                                           ),
-                                                                        )
-                                                                      : Container(),
-                                                                  d_s != 'split'
-                                                                      ? widthSpace5
-                                                                      : Container(),
-                                                                  Expanded(
-                                                                    child: Text(
-                                                                      d_s == 'split'
-                                                                          ? 'BONUS RATIO'
-                                                                          : 'RECORD DATE',
-                                                                      style: BaseStyles
-                                                                          .greyMedium13,
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                5,
+                                                                          ),
+                                                                          Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            children: [
+                                                                              Text(
+                                                                                'Price',
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                  color: kNavyBlue,
+                                                                                ),
+                                                                              ),
+                                                                              Text(
+                                                                                profiledata.isEmpty ? '' : "${profiledata[i]['price'].toString()}",
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w400,
+                                                                                  color: const Color(0xff1F1D1D),
+                                                                                ),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                5,
+                                                                          ),
+                                                                          Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            children: [
+                                                                              Text(
+                                                                                '%chg',
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                  color: kNavyBlue,
+                                                                                ),
+                                                                              ),
+                                                                              Text(
+                                                                                profiledata.isEmpty ? '' : "${profiledata[i]['changesPercentage'].toString()}",
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w400,
+                                                                                  color: const Color(0xff1F1D1D),
+                                                                                ),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                5,
+                                                                          ),
+                                                                          Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            children: [
+                                                                              Text(
+                                                                                'Market Cap.',
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                  color: kNavyBlue,
+                                                                                ),
+                                                                              ),
+                                                                              Text(
+                                                                                profiledata.isEmpty ? '' : "$mrkcap2 Cr.",
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w400,
+                                                                                  color: const Color(0xff1F1D1D),
+                                                                                ),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                5,
+                                                                          ),
+                                                                          Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            children: [
+                                                                              Text(
+                                                                                'P/E',
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                  color: kNavyBlue,
+                                                                                ),
+                                                                              ),
+                                                                              Text(
+                                                                                profiledata.isEmpty ? '' : "${profiledata[i]['pe'].toString()}",
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w400,
+                                                                                  color: const Color(0xff1F1D1D),
+                                                                                ),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                5,
+                                                                          ),
+                                                                          Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            children: [
+                                                                              Text(
+                                                                                'Previous Close',
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                  color: kNavyBlue,
+                                                                                ),
+                                                                              ),
+                                                                              Text(
+                                                                                profiledata.isEmpty ? '' : "${profiledata[i]['previousClose'].toString()}",
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w400,
+                                                                                  color: const Color(0xff1F1D1D),
+                                                                                ),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                          const SizedBox(
+                                                                            height:
+                                                                                5,
+                                                                          ),
+                                                                          Row(
+                                                                            mainAxisAlignment:
+                                                                                MainAxisAlignment.spaceBetween,
+                                                                            children: [
+                                                                              Text(
+                                                                                'EPS',
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w500,
+                                                                                  color: kNavyBlue,
+                                                                                ),
+                                                                              ),
+                                                                              Text(
+                                                                                profiledata.isEmpty
+                                                                                    ? ''
+                                                                                    : profiledata[i]['eps'].toString().length < 5
+                                                                                        ? profiledata[i]['eps'].toString()
+                                                                                        : profiledata[i]['eps'].toString().substring(0, 5),
+                                                                                style: GoogleFonts.poppins(
+                                                                                  fontSize: 14,
+                                                                                  fontWeight: FontWeight.w400,
+                                                                                  color: const Color(0xff1F1D1D),
+                                                                                ),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                        ],
+                                                                      ),
                                                                     ),
-                                                                  ),
-                                                                  widthSpace5,
-                                                                  Expanded(
-                                                                    child: Text(
-                                                                      d_s == 'split'
-                                                                          ? 'RECORD DATE'
-                                                                          : 'INSTRUMENT TYPE',
-                                                                      style: BaseStyles
-                                                                          .greyMedium13,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              d_s == 'dividend'
-                                                                  ? ListView.builder(
-                                                                      physics: NeverScrollableScrollPhysics(),
-                                                                      shrinkWrap: true,
-                                                                      itemCount: dividend.length,
-                                                                      itemBuilder: (BuildContext context, int index) {
-                                                                        return Column(
-                                                                          children: [
-                                                                            heightSpace10,
-                                                                            Row(
-                                                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                  );
+                                                                }),
+                                                  ],
+                                                )
+                                              ],
+                                            ),
+                                          ),
+                                        )
+                                      : selectname == 'Commodity'
+                                          ? Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Commodity',
+                                                    style: GoogleFonts.poppins(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: kNavyBlue,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(
+                                                    height: 5,
+                                                  ),
+                                                  loading2
+                                                      ? Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                            color: kNavyBlue,
+                                                          ),
+                                                        )
+                                                      : commoditylist.isEmpty &&
+                                                              !loading
+                                                          ? Center(
+                                                              child: Text(
+                                                              'No Data',
+                                                              style: BaseStyles
+                                                                  .grey1Medium14,
+                                                            ))
+                                                          : Expanded(
+                                                              child: ListView
+                                                                  .builder(
+                                                                      // physics:
+                                                                      //     NeverScrollableScrollPhysics(),
+                                                                      shrinkWrap:
+                                                                          true,
+                                                                      itemCount:
+                                                                          commoditylist
+                                                                              .length,
+                                                                      itemBuilder:
+                                                                          (BuildContext context,
+                                                                              int i) {
+                                                                        double
+                                                                            mrkcp =
+                                                                            0.0;
+                                                                        if (commoditylist[i]['marketCap'] !=
+                                                                            null) {
+                                                                          // setState(() {
+                                                                          var a =
+                                                                              int.parse(commoditylist[i]['marketCap'].toString()) / 100000000;
+                                                                          mrkcp =
+                                                                              double.parse(a.toStringAsFixed(2));
+                                                                          print(a.toString() +
+                                                                              'mj');
+                                                                          // });
+
+                                                                          // a.add();
+                                                                          // print(
+                                                                          //     a[i].toString() +
+                                                                          //         'mm');
+                                                                          // mrkcap2.add(
+                                                                          //     double.parse(a
+                                                                          //         .toStringAsFixed(
+                                                                          //             2)));
+                                                                        }
+                                                                        return Card(
+                                                                          elevation:
+                                                                              3,
+                                                                          child:
+                                                                              Padding(
+                                                                            padding:
+                                                                                const EdgeInsets.all(8.0),
+                                                                            child:
+                                                                                Column(
                                                                               children: [
-                                                                                Expanded(
-                                                                                  child: Text(
-                                                                                    dividend[index]['label'],
-                                                                                    style: BaseStyles.blackMedium12,
-                                                                                  ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'Company Name',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Expanded(
+                                                                                      child: Text(
+                                                                                        commoditylist.isEmpty ? '' : "${commoditylist[i]['name'].toString()}",
+                                                                                        textAlign: TextAlign.right,
+                                                                                        style: GoogleFonts.poppins(
+                                                                                          fontSize: 14,
+                                                                                          fontWeight: FontWeight.w400,
+                                                                                          color: const Color(0xff1F1D1D),
+                                                                                        ),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
                                                                                 ),
-                                                                                widthSpace5,
-                                                                                Expanded(
-                                                                                  child: Text(
-                                                                                    dividend[index]['dividend'].toString(),
-                                                                                    style: BaseStyles.blackMedium12,
-                                                                                    textAlign: TextAlign.center,
-                                                                                  ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
                                                                                 ),
-                                                                                widthSpace5,
-                                                                                Expanded(
-                                                                                  child: Text(
-                                                                                    dividend[index]['recordDate'].toString(),
-                                                                                    style: BaseStyles.blackMedium12,
-                                                                                  ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'Price',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      commoditylist.isEmpty ? '' : "${commoditylist[i]['price'].toString()}",
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
                                                                                 ),
-                                                                                widthSpace5,
-                                                                                Expanded(
-                                                                                  child: Text(
-                                                                                    'Equity Share',
-                                                                                    style: BaseStyles.blackMedium12,
-                                                                                  ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'Change',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      commoditylist.isEmpty ? '' : "${commoditylist[i]['change'].toString()}",
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      '%chg',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      commoditylist.isEmpty ? '' : "${commoditylist[i]['changesPercentage'].toString()}",
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'Market Cap.',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      commoditylist.isEmpty ? '' : "$mrkcp Cr.",
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'P/E',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      commoditylist.isEmpty ? '' : "${commoditylist[i]['pe'].toString()}",
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'Previous Close',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      commoditylist.isEmpty ? '' : "${commoditylist[i]['previousClose'].toString()}",
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'EPS',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      commoditylist.isEmpty
+                                                                                          ? ''
+                                                                                          : commoditylist[i]['eps'].toString().length < 5
+                                                                                              ? commoditylist[i]['eps'].toString()
+                                                                                              : commoditylist[i]['eps'].toString().substring(0, 5),
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
                                                                                 ),
                                                                               ],
                                                                             ),
-                                                                            // heightSpace5,
-                                                                            Divider(),
-                                                                            heightSpace5,
-                                                                          ],
-                                                                        );
-                                                                      })
-                                                                  : split.isEmpty
-                                                                      ? SizedBox(
-                                                                          height:
-                                                                              MediaQuery.of(context).size.height * 0.50,
-                                                                          child:
-                                                                              Center(
-                                                                            child:
-                                                                                Text(
-                                                                              'No Split',
-                                                                              style: BaseStyles.blacNormal16,
-                                                                            ),
                                                                           ),
-                                                                        )
+                                                                        );
+                                                                      }),
+                                                            )
+                                                ],
+                                              ),
+                                            )
+                                          : selectname == 'Reports'
+                                              ? Expanded(
+                                                  child: Column(
+                                                    children: [
+                                                      heightSpace20,
+                                                      SizedBox(
+                                                        height: MediaQuery.of(
+                                                                    context)
+                                                                .size
+                                                                .height *
+                                                            0.05,
+                                                        child: ListView.builder(
+                                                            shrinkWrap: true,
+                                                            scrollDirection:
+                                                                Axis.horizontal,
+                                                            itemCount:
+                                                                reportname
+                                                                    .length,
+                                                            itemBuilder:
+                                                                (BuildContext
+                                                                        context,
+                                                                    int index) {
+                                                              return Row(
+                                                                children: [
+                                                                  InkWell(
+                                                                    onTap: () {
+                                                                      setState(
+                                                                          () {
+                                                                        selectreportname =
+                                                                            reportname[index]['analystCompany'];
+                                                                        getpricetargetdetailC(
+                                                                            selectreportname);
+                                                                      });
+                                                                    },
+                                                                    child:
+                                                                        Container(
+                                                                      // height: 35,
+                                                                      width: MediaQuery.of(context)
+                                                                              .size
+                                                                              .width *
+                                                                          0.30,
+                                                                      alignment:
+                                                                          Alignment
+                                                                              .center,
+                                                                      decoration: BoxDecoration(
+                                                                          borderRadius: BorderRadius.circular(
+                                                                              1),
+                                                                          color: selectreportname == reportname[index]['analystCompany']
+                                                                              ? kNavyBlue.withOpacity(0.6)
+                                                                              : AppColors.greyprimarycolor.shade200),
+                                                                      child:
+                                                                          Padding(
+                                                                        padding:
+                                                                            const EdgeInsets.all(5.0),
+                                                                        child:
+                                                                            Text(
+                                                                          reportname[index]
+                                                                              [
+                                                                              'analystCompany'],
+                                                                          style: TextStyle(
+                                                                              color: selectreportname == reportname[index]['analystCompany'] ? Colors.white : kNavyBlue,
+                                                                              fontSize: 12,
+                                                                              fontWeight: FontWeight.bold),
+                                                                        ),
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  SizedBox(
+                                                                    width: 10,
+                                                                  )
+                                                                ],
+                                                              );
+                                                            }),
+                                                      ),
+                                                      heightSpace10,
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Text(
+                                                              'Reports',
+                                                              style: GoogleFonts
+                                                                  .poppins(
+                                                                fontSize: 16,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color:
+                                                                    kNavyBlue,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 5,
+                                                            ),
+                                                            Expanded(
+                                                              child: report
+                                                                          .isEmpty &&
+                                                                      !loading3
+                                                                  ? Center(
+                                                                      child:
+                                                                          Text(
+                                                                      'No Data',
+                                                                      style: BaseStyles
+                                                                          .grey1Medium14,
+                                                                    ))
+                                                                  : loading3
+                                                                      ? Center(
+                                                                          child:
+                                                                              CircularProgressIndicator(
+                                                                          color:
+                                                                              kNavyBlue,
+                                                                        ))
                                                                       : ListView.builder(
-                                                                          // physics:
-                                                                          //     NeverScrollableScrollPhysics(),
                                                                           shrinkWrap: true,
-                                                                          itemCount: split.length,
-                                                                          itemBuilder: (BuildContext context, int index) {
+                                                                          itemCount: report.length,
+                                                                          itemBuilder: (BuildContext context, int i) {
                                                                             return Column(
                                                                               children: [
                                                                                 heightSpace10,
                                                                                 Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'News Title',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Expanded(
+                                                                                      child: Text(
+                                                                                        report.isEmpty ? '' : report[i]['newsTitle'].toString(),
+                                                                                        textAlign: TextAlign.right,
+                                                                                        style: GoogleFonts.poppins(
+                                                                                          fontSize: 14,
+                                                                                          fontWeight: FontWeight.w400,
+                                                                                          color: const Color(0xff1F1D1D),
+                                                                                        ),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'Published Date',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Expanded(
+                                                                                      child: Text(
+                                                                                        report.isEmpty ? '' : report[i]['publishedDate'].toString().substring(0, 10),
+                                                                                        textAlign: TextAlign.right,
+                                                                                        style: GoogleFonts.poppins(
+                                                                                          fontSize: 14,
+                                                                                          fontWeight: FontWeight.w400,
+                                                                                          color: const Color(0xff1F1D1D),
+                                                                                        ),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+
+                                                                                Row(
                                                                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                                                   children: [
-                                                                                    Expanded(
-                                                                                      child: Text(
-                                                                                        split[index]['label'],
-                                                                                        style: BaseStyles.blackMedium12,
+                                                                                    Text(
+                                                                                      'Analyst Name',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
                                                                                       ),
                                                                                     ),
-                                                                                    widthSpace5,
-                                                                                    Expanded(
-                                                                                      child: Text(
-                                                                                        "${split[index]['numerator'].toString()}:${split[index]['denominator'].toString()}",
-                                                                                        style: BaseStyles.blackMedium12,
-                                                                                        textAlign: TextAlign.center,
+                                                                                    Text(
+                                                                                      report.isEmpty ? '' : report[i]['analystName'].toString(),
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'Price Target',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
                                                                                       ),
                                                                                     ),
-                                                                                    widthSpace5,
-                                                                                    Expanded(
-                                                                                      child: Text(
-                                                                                        split[index]['date'].toString(),
-                                                                                        style: BaseStyles.blackMedium12,
+                                                                                    Text(
+                                                                                      report.isEmpty ? '' : report[i]['priceTarget'].toString(),
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'AdjPrice Target',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
                                                                                       ),
                                                                                     ),
+                                                                                    Text(
+                                                                                      report.isEmpty ? '' : report[i]['adjPriceTarget'].toString(),
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
+                                                                                  ],
+                                                                                ),
+                                                                                const SizedBox(
+                                                                                  height: 5,
+                                                                                ),
+                                                                                Row(
+                                                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                  children: [
+                                                                                    Text(
+                                                                                      'News Publisher',
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w500,
+                                                                                        color: kNavyBlue,
+                                                                                      ),
+                                                                                    ),
+                                                                                    Text(
+                                                                                      report.isEmpty ? '' : report[i]['newsPublisher'].toString(),
+                                                                                      style: GoogleFonts.poppins(
+                                                                                        fontSize: 14,
+                                                                                        fontWeight: FontWeight.w400,
+                                                                                        color: const Color(0xff1F1D1D),
+                                                                                      ),
+                                                                                    )
                                                                                   ],
                                                                                 ),
                                                                                 // heightSpace5,
-                                                                                Divider(),
+                                                                                Divider(thickness: 1),
                                                                                 heightSpace5,
                                                                               ],
                                                                             );
                                                                           }),
-                                                            ],
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ),
-                                                )
-                                              : selectname == 'Shareholding'
-                                                  ? Expanded(
-                                                      child: Column(
-                                                      children: [
-                                                        heightSpace20,
-                                                        Row(
-                                                          children: [
-                                                            Icon(
-                                                              Icons
-                                                                  .analytics_outlined,
-                                                              size: 20,
-                                                            ),
-                                                            widthSpace5,
-                                                            Text(
-                                                              'Shareholding Summary',
-                                                              style: BaseStyles
-                                                                  .blackMedium16,
                                                             )
                                                           ],
                                                         ),
-                                                        heightSpace10,
-                                                        Row(
-                                                          children: [
-                                                            Text(
-                                                              'SORT BY:    ',
-                                                              style: BaseStyles
-                                                                  .greennormal12,
-                                                            ),
-                                                            Expanded(
-                                                              child: SizedBox(
-                                                                height: MediaQuery.of(
-                                                                            context)
-                                                                        .size
-                                                                        .height *
-                                                                    0.05,
-                                                                child: ListView
-                                                                    .builder(
-                                                                        shrinkWrap:
-                                                                            true,
-                                                                        scrollDirection:
-                                                                            Axis
-                                                                                .horizontal,
-                                                                        itemCount:
-                                                                            shareholddate
-                                                                                .length,
-                                                                        itemBuilder:
-                                                                            (BuildContext context,
-                                                                                int index) {
-                                                                          return Row(
-                                                                            children: [
+                                                      )
+                                                    ],
+                                                  ),
+                                                )
+                                              : selectname == 'News'
+                                                  ? Expanded(
+                                                      child: Column(
+                                                        children: [
+                                                          Wrap(
+                                                            children:
+                                                                List.generate(
+                                                                    newsname
+                                                                        .length,
+                                                                    (i) =>
+                                                                        Padding(
+                                                                          padding:
+                                                                              const EdgeInsets.all(2.0),
+                                                                          child:
                                                                               InkWell(
-                                                                                onTap: () {
-                                                                                  setState(() {
-                                                                                    selectshareholddate = shareholddate[index]['date'];
-                                                                                    getshareholdersdatelistC(shareholddate[index]['date']);
-                                                                                  });
-                                                                                },
-                                                                                child: Container(
-                                                                                  // height:
-                                                                                  //     35,
-                                                                                  width: MediaQuery.of(context).size.width * 0.30,
-                                                                                  alignment: Alignment.center,
-                                                                                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: selectshareholddate == shareholddate[index]['date'] ? kNavyBlue.withOpacity(0.6) : AppColors.greyprimarycolor.shade200),
-                                                                                  child: Padding(
-                                                                                    padding: const EdgeInsets.all(8.0),
-                                                                                    child: Text(
-                                                                                      shareholddate[index]['date'].toString(),
-                                                                                      style: TextStyle(color: selectshareholddate == shareholddate[index]['date'] ? Colors.white : kNavyBlue, fontSize: 12, fontWeight: FontWeight.bold),
+                                                                            onTap:
+                                                                                () {
+                                                                              selectnewsname = newsname[i];
+                                                                              switch (i) {
+                                                                                case 0:
+                                                                                  getnewsC();
+
+                                                                                  break;
+                                                                                case 1:
+                                                                                  getcryptoC();
+
+                                                                                  break;
+                                                                                case 2:
+                                                                                  getforexC();
+
+                                                                                  break;
+                                                                                case 3:
+                                                                                  getgeneralnewC();
+
+                                                                                  break;
+                                                                                default:
+                                                                              }
+                                                                            },
+                                                                            child:
+                                                                                Container(
+                                                                              // height: 35,
+                                                                              // width: MediaQuery.of(
+                                                                              //             context)
+                                                                              //         .size
+                                                                              //         .width *
+                                                                              //     0.30,
+                                                                              // alignment: Alignment
+                                                                              //     .center,
+                                                                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(30), color: selectnewsname == newsname[i] ? kNavyBlue : AppColors.greyprimarycolor.shade200),
+                                                                              child: Padding(
+                                                                                padding: const EdgeInsets.all(5.0),
+                                                                                child: Text(
+                                                                                  newsname[i],
+                                                                                  style: TextStyle(color: selectnewsname == newsname[i] ? Colors.white : kNavyBlue, fontSize: 12, fontWeight: FontWeight.bold),
+                                                                                ),
+                                                                              ),
+                                                                            ),
+                                                                          ),
+                                                                        )),
+                                                          ),
+                                                          heightSpace10,
+                                                          Expanded(
+                                                            child: ListView
+                                                                .builder(
+                                                                    // physics: NeverScrollableScrollPhysics(),
+                                                                    itemCount:
+                                                                        newsdata
+                                                                            .length,
+                                                                    itemBuilder:
+                                                                        (BuildContext
+                                                                                context,
+                                                                            int index) {
+                                                                      return Column(
+                                                                          children: [
+                                                                            Column(
+                                                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                                              children: [
+                                                                                InkWell(
+                                                                                  onTap: () {
+                                                                                    Navigator.of(context).push(MaterialPageRoute(
+                                                                                        builder: (context) => NewsDetails(
+                                                                                              name: selectnewsname,
+                                                                                              data: newsdata[index],
+                                                                                            )));
+                                                                                  },
+                                                                                  child: Container(
+                                                                                    decoration: decorationbox2(opacity: 0.1),
+                                                                                    child: Row(
+                                                                                      children: [
+                                                                                        SizedBox(
+                                                                                          height: MediaQuery.of(context).size.height * 0.10,
+                                                                                          width: MediaQuery.of(context).size.width * 0.35,
+                                                                                          child: ClipRRect(
+                                                                                            borderRadius: BorderRadius.circular(5),
+                                                                                            child: newsdata.isEmpty
+                                                                                                ? Container()
+                                                                                                : CachedNetworkImage(
+                                                                                                    imageBuilder: (context, imageProvider) => Container(
+                                                                                                      // height: 60.0,
+                                                                                                      decoration: BoxDecoration(
+                                                                                                        image: DecorationImage(image: imageProvider, fit: BoxFit.cover),
+                                                                                                      ),
+                                                                                                    ),
+                                                                                                    imageUrl: newsdata[index]['image'].toString(),
+                                                                                                    // height: 80,
+                                                                                                    // width: 100,
+                                                                                                    fit: BoxFit.contain,
+                                                                                                    placeholder: (context, url) => const Center(
+                                                                                                        child: CircularProgressIndicator(
+                                                                                                      color: AppColors.blackColor,
+                                                                                                    )),
+                                                                                                    errorWidget: (context, url, error) => const Icon(Icons.error),
+                                                                                                  ),
+                                                                                          ),
+                                                                                        ),
+                                                                                        widthSpace10,
+                                                                                        Expanded(
+                                                                                          child: Container(
+                                                                                            padding: const EdgeInsets.all(10),
+                                                                                            child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                                                                              Text(
+                                                                                                newsdata[index]['symbol'].toString(),
+                                                                                                style: BaseStyles.grey1Medium14,
+                                                                                                maxLines: 2,
+                                                                                                overflow: TextOverflow.ellipsis,
+                                                                                              ),
+                                                                                              heightSpace3,
+                                                                                              Text(
+                                                                                                newsdata[index]['title'].toString(),
+                                                                                                style: BaseStyles.blackMedium14,
+                                                                                                maxLines: 2,
+                                                                                                overflow: TextOverflow.ellipsis,
+                                                                                              ),
+                                                                                              heightSpace3,
+                                                                                              Text(
+                                                                                                newsdata[index]['publishedDate'].toString().substring(0, 10),
+                                                                                                style: BaseStyles.grey3Normal10,
+                                                                                              ),
+                                                                                              // const Icon(
+                                                                                              //   Icons.share,
+                                                                                              //   color: AppColors.greycolor,
+                                                                                              // )
+                                                                                            ]),
+                                                                                          ),
+                                                                                        )
+                                                                                      ],
                                                                                     ),
                                                                                   ),
                                                                                 ),
-                                                                              ),
-                                                                              SizedBox(
-                                                                                width: 10,
-                                                                              )
-                                                                            ],
-                                                                          );
-                                                                        }),
+                                                                                heightSpace10
+                                                                              ],
+                                                                            )
+                                                                          ]);
+                                                                    }),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    )
+                                                  : selectname ==
+                                                          'Corporate Actions'
+                                                      ? Expanded(
+                                                          child: Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(0.0),
+                                                            child:
+                                                                SingleChildScrollView(
+                                                              child: Column(
+                                                                children: [
+                                                                  heightSpace20,
+                                                                  Row(
+                                                                    children: [
+                                                                      GestureDetector(
+                                                                        onTap:
+                                                                            () {
+                                                                          setState(
+                                                                              () {
+                                                                            d_s =
+                                                                                'dividend';
+                                                                          });
+                                                                        },
+                                                                        child:
+                                                                            Container(
+                                                                          decoration: decorationbox2(
+                                                                              color: d_s == 'dividend' ? kNavyBlue : AppColors.greyprimarycolor.shade400,
+                                                                              radius: 5.0),
+                                                                          child:
+                                                                              Padding(
+                                                                            padding:
+                                                                                const EdgeInsets.all(8.0),
+                                                                            child:
+                                                                                Text(
+                                                                              'Dividend',
+                                                                              style: BaseStyles.whitebold14,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      ),
+                                                                      widthSpace20,
+                                                                      GestureDetector(
+                                                                        onTap:
+                                                                            () {
+                                                                          setState(
+                                                                              () {
+                                                                            d_s =
+                                                                                'split';
+                                                                          });
+                                                                        },
+                                                                        child:
+                                                                            Container(
+                                                                          decoration: decorationbox2(
+                                                                              color: d_s == 'split' ? kNavyBlue : AppColors.greyprimarycolor.shade400,
+                                                                              radius: 5.0),
+                                                                          child:
+                                                                              Padding(
+                                                                            padding:
+                                                                                const EdgeInsets.all(8.0),
+                                                                            child:
+                                                                                Text(
+                                                                              'Split',
+                                                                              style: BaseStyles.whitebold14,
+                                                                            ),
+                                                                          ),
+                                                                        ),
+                                                                      )
+                                                                    ],
+                                                                  ),
+                                                                  heightSpace10,
+                                                                  Divider(),
+                                                                  heightSpace10,
+                                                                  Column(
+                                                                    crossAxisAlignment:
+                                                                        CrossAxisAlignment
+                                                                            .start,
+                                                                    children: [
+                                                                      Row(
+                                                                        children: [
+                                                                          Icon(
+                                                                            Icons.history,
+                                                                            color:
+                                                                                kNavyBlue,
+                                                                          ),
+                                                                          widthSpace5,
+                                                                          Text(
+                                                                            d_s == 'dividend'
+                                                                                ? 'Dividend History'
+                                                                                : 'Split History',
+                                                                            style:
+                                                                                BaseStyles.blackMedium16,
+                                                                          )
+                                                                        ],
+                                                                      ),
+                                                                      heightSpace10,
+                                                                      Row(
+                                                                        crossAxisAlignment:
+                                                                            CrossAxisAlignment.start,
+                                                                        mainAxisAlignment:
+                                                                            MainAxisAlignment.spaceBetween,
+                                                                        children: [
+                                                                          Expanded(
+                                                                            child:
+                                                                                Text(
+                                                                              'EX-DATE',
+                                                                              style: BaseStyles.greyMedium13,
+                                                                            ),
+                                                                          ),
+                                                                          widthSpace5,
+                                                                          d_s != 'split'
+                                                                              ? Expanded(
+                                                                                  child: Text(
+                                                                                    'DIVIDEND AMOUNT',
+                                                                                    style: BaseStyles.greyMedium13,
+                                                                                  ),
+                                                                                )
+                                                                              : Container(),
+                                                                          d_s != 'split'
+                                                                              ? widthSpace5
+                                                                              : Container(),
+                                                                          Expanded(
+                                                                            child:
+                                                                                Text(
+                                                                              d_s == 'split' ? 'BONUS RATIO' : 'RECORD DATE',
+                                                                              style: BaseStyles.greyMedium13,
+                                                                            ),
+                                                                          ),
+                                                                          widthSpace5,
+                                                                          Expanded(
+                                                                            child:
+                                                                                Text(
+                                                                              d_s == 'split' ? 'RECORD DATE' : 'INSTRUMENT TYPE',
+                                                                              style: BaseStyles.greyMedium13,
+                                                                            ),
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                      d_s == 'dividend'
+                                                                          ? ListView.builder(
+                                                                              physics: NeverScrollableScrollPhysics(),
+                                                                              shrinkWrap: true,
+                                                                              itemCount: dividend.length,
+                                                                              itemBuilder: (BuildContext context, int index) {
+                                                                                return Column(
+                                                                                  children: [
+                                                                                    heightSpace10,
+                                                                                    Row(
+                                                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                      children: [
+                                                                                        Expanded(
+                                                                                          child: Text(
+                                                                                            dividend[index]['label'],
+                                                                                            style: BaseStyles.blackMedium12,
+                                                                                          ),
+                                                                                        ),
+                                                                                        widthSpace5,
+                                                                                        Expanded(
+                                                                                          child: Text(
+                                                                                            dividend[index]['dividend'].toString(),
+                                                                                            style: BaseStyles.blackMedium12,
+                                                                                            textAlign: TextAlign.center,
+                                                                                          ),
+                                                                                        ),
+                                                                                        widthSpace5,
+                                                                                        Expanded(
+                                                                                          child: Text(
+                                                                                            dividend[index]['recordDate'].toString(),
+                                                                                            style: BaseStyles.blackMedium12,
+                                                                                          ),
+                                                                                        ),
+                                                                                        widthSpace5,
+                                                                                        Expanded(
+                                                                                          child: Text(
+                                                                                            'Equity Share',
+                                                                                            style: BaseStyles.blackMedium12,
+                                                                                          ),
+                                                                                        ),
+                                                                                      ],
+                                                                                    ),
+                                                                                    // heightSpace5,
+                                                                                    Divider(),
+                                                                                    heightSpace5,
+                                                                                  ],
+                                                                                );
+                                                                              })
+                                                                          : split.isEmpty
+                                                                              ? SizedBox(
+                                                                                  height: MediaQuery.of(context).size.height * 0.50,
+                                                                                  child: Center(
+                                                                                    child: Text(
+                                                                                      'No Split',
+                                                                                      style: BaseStyles.blacNormal16,
+                                                                                    ),
+                                                                                  ),
+                                                                                )
+                                                                              : ListView.builder(
+                                                                                  // physics:
+                                                                                  //     NeverScrollableScrollPhysics(),
+                                                                                  shrinkWrap: true,
+                                                                                  itemCount: split.length,
+                                                                                  itemBuilder: (BuildContext context, int index) {
+                                                                                    return Column(
+                                                                                      children: [
+                                                                                        heightSpace10,
+                                                                                        Row(
+                                                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                                                          children: [
+                                                                                            Expanded(
+                                                                                              child: Text(
+                                                                                                split[index]['label'],
+                                                                                                style: BaseStyles.blackMedium12,
+                                                                                              ),
+                                                                                            ),
+                                                                                            widthSpace5,
+                                                                                            Expanded(
+                                                                                              child: Text(
+                                                                                                "${split[index]['numerator'].toString()}:${split[index]['denominator'].toString()}",
+                                                                                                style: BaseStyles.blackMedium12,
+                                                                                                textAlign: TextAlign.center,
+                                                                                              ),
+                                                                                            ),
+                                                                                            widthSpace5,
+                                                                                            Expanded(
+                                                                                              child: Text(
+                                                                                                split[index]['date'].toString(),
+                                                                                                style: BaseStyles.blackMedium12,
+                                                                                              ),
+                                                                                            ),
+                                                                                          ],
+                                                                                        ),
+                                                                                        // heightSpace5,
+                                                                                        Divider(),
+                                                                                        heightSpace5,
+                                                                                      ],
+                                                                                    );
+                                                                                  }),
+                                                                    ],
+                                                                  ),
+                                                                ],
                                                               ),
                                                             ),
-                                                          ],
-                                                        ),
-                                                        Expanded(
-                                                          child: shareholdlist
-                                                                      .isEmpty &&
-                                                                  !loading2
-                                                              ? Center(
-                                                                  child: Text(
-                                                                  'No Data',
-                                                                  style: BaseStyles
-                                                                      .grey1Medium14,
-                                                                ))
-                                                              : loading2
-                                                                  ? Center(
+                                                          ),
+                                                        )
+                                                      : selectname ==
+                                                              'Shareholding'
+                                                          ? Expanded(
+                                                              child: Column(
+                                                              children: [
+                                                                heightSpace20,
+                                                                Row(
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .analytics_outlined,
+                                                                      size: 20,
+                                                                    ),
+                                                                    widthSpace5,
+                                                                    Text(
+                                                                      'Shareholding Summary',
+                                                                      style: BaseStyles
+                                                                          .blackMedium16,
+                                                                    )
+                                                                  ],
+                                                                ),
+                                                                heightSpace10,
+                                                                Row(
+                                                                  children: [
+                                                                    Text(
+                                                                      'SORT BY:    ',
+                                                                      style: BaseStyles
+                                                                          .greennormal12,
+                                                                    ),
+                                                                    Expanded(
                                                                       child:
-                                                                          CircularProgressIndicator(
-                                                                      color:
-                                                                          kNavyBlue,
-                                                                    ))
-                                                                  : ListView.builder(
-                                                                      // physics: NeverScrollableScrollPhysics(),
-                                                                      itemCount: shareholdlist.length,
-                                                                      itemBuilder: (BuildContext context, int index) {
-                                                                        return Column(
-                                                                            children: [
-                                                                              Column(
-                                                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                                          SizedBox(
+                                                                        height: MediaQuery.of(context).size.height *
+                                                                            0.05,
+                                                                        child: ListView.builder(
+                                                                            shrinkWrap: true,
+                                                                            scrollDirection: Axis.horizontal,
+                                                                            itemCount: shareholddate.length,
+                                                                            itemBuilder: (BuildContext context, int index) {
+                                                                              return Row(
                                                                                 children: [
                                                                                   InkWell(
-                                                                                    onTap: () {},
+                                                                                    onTap: () {
+                                                                                      setState(() {
+                                                                                        selectshareholddate = shareholddate[index]['date'];
+                                                                                        getshareholdersdatelistC(shareholddate[index]['date']);
+                                                                                      });
+                                                                                    },
                                                                                     child: Container(
-                                                                                      decoration: decorationbox2(opacity: 0.1),
-                                                                                      child: Row(
-                                                                                        children: [
-                                                                                          widthSpace10,
-                                                                                          Expanded(
-                                                                                            child: Container(
-                                                                                              padding: const EdgeInsets.all(10),
-                                                                                              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                                                                                                Text(
-                                                                                                  "Name: ${shareholdlist[index]['investorName'].toString()}",
-                                                                                                  style: BaseStyles.grey1Medium14,
-                                                                                                  maxLines: 2,
-                                                                                                  overflow: TextOverflow.ellipsis,
-                                                                                                ),
-                                                                                                heightSpace3,
-                                                                                                Text(
-                                                                                                  "Owership: ${shareholdlist[index]['ownership'].toString()}",
-                                                                                                  style: BaseStyles.grey1Medium14,
-                                                                                                  maxLines: 2,
-                                                                                                  overflow: TextOverflow.ellipsis,
-                                                                                                ),
-                                                                                                heightSpace3,
-                                                                                              ]),
-                                                                                            ),
-                                                                                          )
-                                                                                        ],
+                                                                                      // height:
+                                                                                      //     35,
+                                                                                      width: MediaQuery.of(context).size.width * 0.30,
+                                                                                      alignment: Alignment.center,
+                                                                                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), color: selectshareholddate == shareholddate[index]['date'] ? kNavyBlue.withOpacity(0.6) : AppColors.greyprimarycolor.shade200),
+                                                                                      child: Padding(
+                                                                                        padding: const EdgeInsets.all(8.0),
+                                                                                        child: Text(
+                                                                                          shareholddate[index]['date'].toString(),
+                                                                                          style: TextStyle(color: selectshareholddate == shareholddate[index]['date'] ? Colors.white : kNavyBlue, fontSize: 12, fontWeight: FontWeight.bold),
+                                                                                        ),
                                                                                       ),
                                                                                     ),
                                                                                   ),
-                                                                                  heightSpace10
+                                                                                  SizedBox(
+                                                                                    width: 10,
+                                                                                  )
                                                                                 ],
-                                                                              )
-                                                                            ]);
-                                                                      }),
-                                                        )
-                                                      ],
-                                                    ))
-                                                  : Container(),
+                                                                              );
+                                                                            }),
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                                Expanded(
+                                                                  child: shareholdlist
+                                                                              .isEmpty &&
+                                                                          !loading2
+                                                                      ? Center(
+                                                                          child:
+                                                                              Text(
+                                                                          'No Data',
+                                                                          style:
+                                                                              BaseStyles.grey1Medium14,
+                                                                        ))
+                                                                      : loading2
+                                                                          ? Center(
+                                                                              child: CircularProgressIndicator(
+                                                                              color: kNavyBlue,
+                                                                            ))
+                                                                          : ListView.builder(
+                                                                              // physics: NeverScrollableScrollPhysics(),
+                                                                              itemCount: shareholdlist.length,
+                                                                              itemBuilder: (BuildContext context, int index) {
+                                                                                return Column(children: [
+                                                                                  Column(
+                                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                                    children: [
+                                                                                      InkWell(
+                                                                                        onTap: () {},
+                                                                                        child: Container(
+                                                                                          decoration: decorationbox2(opacity: 0.1),
+                                                                                          child: Row(
+                                                                                            children: [
+                                                                                              widthSpace10,
+                                                                                              Expanded(
+                                                                                                child: Container(
+                                                                                                  padding: const EdgeInsets.all(10),
+                                                                                                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                                                                                                    Text(
+                                                                                                      "Name: ${shareholdlist[index]['investorName'].toString()}",
+                                                                                                      style: BaseStyles.grey1Medium14,
+                                                                                                      maxLines: 2,
+                                                                                                      overflow: TextOverflow.ellipsis,
+                                                                                                    ),
+                                                                                                    heightSpace3,
+                                                                                                    Text(
+                                                                                                      "Owership: ${shareholdlist[index]['ownership'].toString()}",
+                                                                                                      style: BaseStyles.grey1Medium14,
+                                                                                                      maxLines: 2,
+                                                                                                      overflow: TextOverflow.ellipsis,
+                                                                                                    ),
+                                                                                                    heightSpace3,
+                                                                                                  ]),
+                                                                                                ),
+                                                                                              )
+                                                                                            ],
+                                                                                          ),
+                                                                                        ),
+                                                                                      ),
+                                                                                      heightSpace10
+                                                                                    ],
+                                                                                  )
+                                                                                ]);
+                                                                              }),
+                                                                )
+                                                              ],
+                                                            ))
+                                                          : Container(),
             ],
           ),
         ),

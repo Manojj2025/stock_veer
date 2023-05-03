@@ -288,6 +288,11 @@ class BaseStyles {
     fontWeight: FontWeight.w900,
     fontSize: 19.sp,
   );
+  static final blacklarge16 = GoogleFonts.roboto(
+    color: Colors.black,
+    fontWeight: FontWeight.w900,
+    fontSize: 16.sp,
+  );
   static final blackMedium24 = GoogleFonts.roboto(
     color: Colors.black,
     fontWeight: FontWeight.w600,
@@ -379,7 +384,7 @@ class BaseStyles {
     fontSize: 14.sp,
   );
   static final greenMedium14 = GoogleFonts.roboto(
-    color: AppColors.primaryColor,
+    color: AppColors.primaryColor2,
     fontWeight: FontWeight.w500,
     fontSize: 14.sp,
   );

@@ -124,6 +124,63 @@ class ApisProvider extends GetConnect {
     }
   }
 
+  Future<dynamic> getcryptonewsP({page}) async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'v4/crypto_news?page=20&apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
+  Future<dynamic> getfoxesnewsP({page}) async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'v4/forex_news?page=0&apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
+  Future<dynamic> getgenernalnewsP({page}) async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'general_news?page=0&apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
   Future<dynamic> getdevidendP() async {
     httpClient.baseUrl = BASE_URL;
 
@@ -352,12 +409,126 @@ class ApisProvider extends GetConnect {
     }
   }
 
-  Future<dynamic> getcompanydetaillistP(symbol) async {
+  Future<dynamic> getcompanydetaillistP(multiname) async {
     httpClient.baseUrl = BASE_URL;
 
     httpClient.timeout = const Duration(seconds: 30);
     var res = await get(
-        'v3/profile/$symbol?apikey=76d214939856f46dff7723ee737344bf',
+        'v3/quote/$multiname?apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
+  Future<dynamic> getpricetargetlistP(symbol) async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'v4/price-target?symbol=$symbol&apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
+  Future<dynamic> getpricetargetdetailP(name) async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'v4/price-target-analyst-company?company=$name&apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
+  Future<dynamic> getstocktopgainerP() async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'v3/stock_market/gainers?apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
+  Future<dynamic> getstocktoploserP() async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'v3/stock_market/losers?apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
+  Future<dynamic> getstockactiveP() async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'v3/stock_market/actives?apikey=76d214939856f46dff7723ee737344bf',
+        headers: {
+          "Accept": "application/json",
+        });
+    if (res.statusCode == 200 || res.statusCode == 201) {
+      return res.body;
+    } else if (res.unauthorized) {
+      return Future.error(res.body);
+    } else {
+      // print(res.statusText);
+      return Future.error('Network Problem');
+    }
+  }
+
+  Future<dynamic> getquotescommodityP() async {
+    httpClient.baseUrl = BASE_URL;
+
+    httpClient.timeout = const Duration(seconds: 30);
+    var res = await get(
+        'v3/quotes/commodity?apikey=76d214939856f46dff7723ee737344bf',
         headers: {
           "Accept": "application/json",
         });

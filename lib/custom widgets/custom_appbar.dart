@@ -13,7 +13,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Colors.white,
       elevation: 0,
       leading: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 10,vertical: 15),
+        margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
         height: 26,
         width: 40,
         decoration: BoxDecoration(
@@ -21,18 +21,24 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             borderRadius: BorderRadius.circular(5),
             image: const DecorationImage(
                 fit: BoxFit.fill,
-                image: AssetImage('assets/images/stockveer_Splash.png',)
-
-            )
-        ),
+                image: AssetImage(
+                  'assets/images/stockveer_Splash.png',
+                ))),
       ),
-      title: Text('StockVeer',style: GoogleFonts.poppins(fontWeight: FontWeight.w600,fontSize: 18,color: const Color(0xff030A39)),),
+      title: Text(
+        'StockVeer',
+        style: GoogleFonts.poppins(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: const Color(0xff030A39)),
+      ),
       actions: [
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10.0,vertical: 15),
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 15),
           child: InkWell(
-            onTap: (){
-              Navigator.of(context).push(MaterialPageRoute(builder: (context)=>PremiumSubscription()));
+            onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (context) => PremiumSubscription()));
             },
             child: Ink(
               height: 21,
@@ -40,16 +46,29 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(90),
                   color: Colors.white,
-                  border: Border.all(color: kFDCDColor,width: 1),
+                  border: Border.all(color: kFDCDColor, width: 1),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.25),blurRadius: 1,)
-                  ]
-              ),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.25),
+                      blurRadius: 1,
+                    )
+                  ]),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  Text('Click To Subscription offer',style: GoogleFonts.poppins(fontSize: 8,fontWeight: FontWeight.w600,color: kF611Color),),
-                  Image.asset('assets/icons/doubleArrow.png',height: 13,width: 13,fit: BoxFit.fill,),
+                  Text(
+                    'Click To Subscription offer',
+                    style: GoogleFonts.poppins(
+                        fontSize: 8,
+                        fontWeight: FontWeight.w600,
+                        color: kF611Color),
+                  ),
+                  Image.asset(
+                    'assets/icons/doubleArrow.png',
+                    height: 13,
+                    width: 13,
+                    fit: BoxFit.fill,
+                  ),
                 ],
               ),
             ),
@@ -57,7 +76,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         Padding(
           padding: const EdgeInsets.all(15.0),
-          child: Image.asset('assets/images/profilePhoto.png',height: 24,width: 24,fit: BoxFit.fill,),
+          child: Image.asset(
+            'assets/images/profilePhoto.png',
+            height: 24,
+            width: 24,
+            fit: BoxFit.fill,
+          ),
         )
       ],
     );

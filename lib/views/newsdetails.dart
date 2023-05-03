@@ -9,7 +9,8 @@ import '../utils/colors.dart';
 
 class NewsDetails extends StatelessWidget {
   Map data;
-  NewsDetails({super.key, required this.data});
+  final String name;
+  NewsDetails({super.key, required this.data, required this.name});
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +18,7 @@ class NewsDetails extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: kNavyBlue,
         title: Text(
-          'back',
+          name,
           style: BaseStyles.whitebold14,
         ),
       ),
